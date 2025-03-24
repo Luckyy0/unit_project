@@ -27,6 +27,11 @@ public class UserController {
         return userMysqlService.update(userInfo).toResponse();
     }
 
+    @GetMapping("/change_json_data")
+    public UserResponse changeJsonData() {
+        return userMysqlService.changJsonData().toResponse();
+    }
+
     @DeleteMapping("/{userId}")
     public boolean deletedUser(@PathVariable("userId") Integer userId) {
         return userMysqlService.deleteUser(userId);

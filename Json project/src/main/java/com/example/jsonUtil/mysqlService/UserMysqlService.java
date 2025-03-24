@@ -6,6 +6,7 @@ import com.example.jsonUtil.info.UserInfo;
 import com.example.jsonUtil.repository.UserRepository;
 import com.example.jsonUtil.util.JsonUtil;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,18 @@ public class UserMysqlService {
             log.error("Error when update: %s".formatted(e.getMessage()));
         }
         return userUpdate;
+    }
+
+    public User changJsonData() {
+        //update Array Node
+        User OriginUser = findById(4);
+        User UpdateUser = findById(5);
+        if (OriginUser.getUserContent() == null) {
+            return User.emptyUser();
+        }
+        ArrayNode originNode = (ArrayNode) JsonUtil.stringToJson(OriginUser.getUserContent());
+        UpdateUser.setUserContent(JsonUtil.updateArrayNode(originNode));
+        return userRepository.save(UpdateUser.toEntity()).toDomain();
     }
 
     private String updateDataContent(String oldContent, String newContent) {
