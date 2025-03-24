@@ -1,15 +1,18 @@
 package com.example.jsonUtil.util;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -18,13 +21,86 @@ public class JsonUtil {
 
     public static JsonNode stringToJson(String content) {
         try {
-            JsonNode jsonNode = objectMapper.readTree(content);
-            return jsonNode;
+            return objectMapper.readTree(content);
         } catch (Exception e) {
             log.error("Convert json fail");
             throw new RuntimeException(e);
         }
     }
+
+    public static <T extends JsonNode> T checkObjectNode(ObjectNode originNode, String targetField, String targetData, Class<T> targetType) {
+        if (originNode == null) {
+            return null;
+        }
+        JsonNode item = originNode.get(targetField);
+        if (targetType.isInstance(item)) {
+            T targetNode = targetType.cast(item);
+            return targetData == null ? targetNode :
+                    targetData.equals(targetNode.asText()) ? targetNode : null;
+        }
+        return null;
+    }
+
+    public static <T extends JsonNode> T checkArrayNode(ArrayNode arrayNode, String targetField, String targetData, Class<?> itemType, Class<T> targetType) {
+        for (JsonNode item : arrayNode) {
+            if (itemType.isInstance(item)) {
+                T itemNode = targetType.cast(item);
+                if (itemNode.isContainerNode()) {
+
+                }
+            }
+        }
+        return null;
+    }
+
+    public static String updateArrayNode(ArrayNode arrayNode) {
+        for (JsonNode item : arrayNode) {
+            if (item instanceof ObjectNode originNode) {
+                if (checkObjectNode(originNode, "sectionTitle", "Legal Review", TextNode.class) != null) {
+                    JsonNode fieldsNode = originNode.get("fields");
+                    if (fieldsNode instanceof ArrayNode fieldsArrayNode) {
+                        for (JsonNode field : fieldsArrayNode) {
+                            if (field instanceof ObjectNode fieldNode) {
+                                if (checkObjectNode(checkObjectNode(fieldNode, "label", null, ObjectNode.class), "en", "Dataset name", TextNode.class) != null) {
+                                    fieldNode.remove("type");
+                                    fieldNode.set("type", new TextNode("textarea"));
+                                    fieldNode.remove("width");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return JsonToString(arrayNode);
+    }
+
+//    public static String updateArrayNode(ArrayNode arrayNode) {
+//        for (JsonNode item : arrayNode) {
+//            if (item instanceof ObjectNode originNode) {
+//                JsonNode sectionTitleNode = originNode.get("sectionTitle");
+//                if (sectionTitleNode instanceof TextNode textNode && "Legal Review".equals(textNode.asText())) {
+//                    JsonNode fieldsNode = originNode.get("fields");
+//                    if (fieldsNode instanceof ArrayNode fieldsArrayNode) {
+//                        for (JsonNode field : fieldsArrayNode) {
+//                            if (field instanceof ObjectNode fieldNode) {
+//                                JsonNode labelNode = fieldNode.get("label");
+//                                if (labelNode instanceof ObjectNode labelObjectNode) {
+//                                    JsonNode enNode = labelObjectNode.get("en");
+//                                    if (enNode instanceof TextNode enTextNode && "Dataset name".equals(enTextNode.asText())) {
+//                                        fieldNode.remove("type");
+//                                        fieldNode.set("type", new TextNode("textarea"));
+//                                        fieldNode.remove("width");
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        return JsonToString(arrayNode);
+//    }
 
     public static void compareObjectNode(
             Map<String, JsonNode> addNode, Map<String, JsonNode> removeNode, Map<String, JsonNode> changeNode,
@@ -40,7 +116,7 @@ public class JsonUtil {
             if (newValue == null) {
                 removeNode.putIfAbsent(currentPath, newValue);
             } else if (oldValue == null) {
-                changeNode.putIfAbsent(currentPath,newValue);
+                changeNode.putIfAbsent(currentPath, newValue);
             } else if (!oldValue.equals(newValue)) {
                 if (oldValue instanceof ObjectNode && newValue instanceof ObjectNode) {
                     compareObjectNode(addNode, removeNode, changeNode, (ObjectNode) oldValue, (ObjectNode) newValue, currentPath);
@@ -98,14 +174,14 @@ public class JsonUtil {
     }
 
     public static String UpdateNode(ObjectNode jsonOriginData,
-            Map<String, JsonNode> addNode, Map<String, JsonNode> removeNode, Map<String, JsonNode> changeNode) {
+                                    Map<String, JsonNode> addNode, Map<String, JsonNode> removeNode, Map<String, JsonNode> changeNode) {
         addNode(jsonOriginData, addNode);
         removeNode(jsonOriginData, removeNode);
         changeNode(jsonOriginData, changeNode);
         return JsonToString(jsonOriginData);
     }
 
-    public static String JsonToString(ObjectNode jsonData) {
+    public static String JsonToString(JsonNode jsonData) {
         try {
             return objectMapper.writeValueAsString(jsonData);
         } catch (JsonProcessingException e) {
@@ -118,12 +194,12 @@ public class JsonUtil {
             String[] parts = entry.getKey().split("\\.");
             JsonNode value = entry.getValue();
             JsonNode current = jsonOriginData;
-            for (int i=0; i < parts.length - 1; i++) {
+            for (int i = 0; i < parts.length - 1; i++) {
                 current = current.get(parts[i]);
             }
             if (current instanceof ObjectNode objectNode) {
-                objectNode.remove(parts[parts.length-1]);
-                objectNode.set(parts[parts.length-1], value);
+                objectNode.remove(parts[parts.length - 1]);
+                objectNode.set(parts[parts.length - 1], value);
             }
         }
     }
@@ -133,11 +209,11 @@ public class JsonUtil {
             String[] parts = entry.getKey().split("\\.");
             JsonNode value = entry.getValue();
             JsonNode current = jsonOriginData;
-            for (int i=0; i < parts.length - 1; i++) {
+            for (int i = 0; i < parts.length - 1; i++) {
                 current = current.get(parts[i]);
             }
             if (current instanceof ObjectNode objectNode) {
-                objectNode.remove(parts[parts.length-1]);
+                objectNode.remove(parts[parts.length - 1]);
             }
         }
     }
@@ -147,11 +223,11 @@ public class JsonUtil {
             String[] parts = entry.getKey().split("\\.");
             JsonNode value = entry.getValue();
             JsonNode current = jsonOriginData;
-            for (int i=0; i < parts.length - 1; i++) {
+            for (int i = 0; i < parts.length - 1; i++) {
                 current = current.get(parts[i]);
             }
             if (current instanceof ObjectNode objectNode) {
-                objectNode.set(parts[parts.length-1], value);
+                objectNode.set(parts[parts.length - 1], value);
             }
         }
     }
