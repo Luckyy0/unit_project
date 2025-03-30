@@ -1,0 +1,38 @@
+1. THREAD
+CacheManager có thể được truy xuất và sử dụng đồng thời bởi nhiều thread.
+
+Các triển khai như CaffeineCacheManager được thiết kế để hoạt động thread-safe.
+=> Không cần phải lo lắng về việc đồng bộ hóa các thread.
+
+CacheManager hoạt động trên chính thread của caller => Cache không tạo thêm thread để xử lý cho cache
+
+2. MULTI CACHE
+Có thể tạo nhiều cacheManager, mỗi cacheManager quản lý 1 cache hay 1 nhóm cache
+Có thể tạo 1 cacheManager, mỗi cacheManager chứa nhiều cache
+=> Nên sử dụng 1 cacheManager để quản lý 1 nhóm cache(Tránh gây nhầm lẫn
+Chỉ sử dụng nhiều cacheManager khi cache có cấu hình khác nhau
+
+
+3. @EnableCaching là cần thiết để cache hoạt động
+
+4. Enum
+Việc đưa 1 object khởi tạo với từ khóa new (ví dụ USER_CACHE_INFO(CacheConstant.USER_CACHE_INFO, new UserinfoCache())) gây ra lỗi khởi tạo Bean
+Do:
+	Các hằng số enum được khởi tạo ngay khi lớp enum được load, tức là trước khi Spring Context được xây dựng.
+	Nếu UserinfoCache phụ thuộc vào bean khác => các bean phụ thuộc sẽ không được inject vào UserinfoCache (Do Spring Context chưa được xây dựng)
+Giải pháp:
+	USER_CACHE_INFO(CacheConstant.USER_CACHE_INFO, new UserinfoCache())
+	->
+	USER_CACHE_INFO(CacheConstant.USER_CACHE_INFO, UserinfoCache.class)
+
+	CacheCustomManager manager = applicationContext.getBean(cacheType.cacheManagerClass);
+
+5. Annotation
+Hoat động dựa trên AOP proxy của spring
+=> chỉ can thiệp vào method instance, và object phải được quản lý bởi spring contexṭ (@Component, @Service)
+=> không sử dụng với static
+
+6. Cách tối ưu get info với số lượng lớn data
+- Chia batch request (nếu external api support)
+- Lưu vào cache và get ra
+- Chạy đa luồng
